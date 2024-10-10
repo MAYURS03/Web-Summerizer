@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Page Summarizer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+
+    <div class="container">
+        <h1>Web Page Summarizer</h1>
+        <p>Paste a URL below and choose your options to generate a summary:</p>
+        
+        <form id="summarizer-form" onsubmit="return false;">
+            <input type="text" id="url-input" placeholder="Enter URL" required>
+            <br>
+            
+            <label for="length-selector">Summary Length:</label><br>
+            <select id="length-selector">
+                <option value="short">Short</option>
+                <option value="medium">Medium</option>
+                <option value="long">Long</option>
+            </select>
+            <br>
+
+            <label for="format-selector">Summary Format:</label><br>
+            <select id="format-selector">
+                <option value="paragraph">Paragraph</option>
+                <option value="bullet">Bullet Points</option>
+            </select>
+            <br>
+
+            <button type="submit" id="summarize-button" onclick="summarizePage()">Summarize</button>
+            <button type="button" id="clear-button" onclick="clearForm()">Clear</button>
+        </form>
+
+        <p class="error-message" id="error-message">Please enter a valid URL.</p>
+        <div class="loading" id="loading-spinner">
+            <p>Summarizing... Please wait.</p>
+        </div>
+
+        <div class="summary-result" id="summary-result">
+            <h2>Summary:</h2>
+            <div id="summary-text"></div>
+        </div>
+    </div>
+
+    <script>
+        function isValidURL(url) {
+            const regex = /^(http|https):\/\/[^ "]+$/;
+            return regex.test(url);
+        }
+
+        function clearForm() {
+            document.getElementById('url-input').value = '';
+            document.getElementById('length-selector').value = 'medium';
+            document.getElementById('format-selector').value = 'paragraph';
+            document.getElementById('error-message').style.display = 'none';
+            document.getElementById('summary-result').style.display = 'none';
+        }
+
+        async function summarizePage() {
+            const urlInput = document.getElementById('url-input').value;
+            const summaryLength = document.getElementById('length-selector').value;
+            const summaryFormat = document.getElementById('format-selector').value;
+            const errorMessage = document.getElementById('error-message');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const summaryResult = document.getElementById('summary-result');
+            const summaryText = document.getElementById('summary-text');
+
+            errorMessage.style.display = 'none';
+            summaryResult.style.display = 'none';
+
+            if (!isValidURL(urlInput)) {
+                errorMessage.textContent = "Please enter a valid URL.";
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            loadingSpinner.style.display = 'block';
+
+            try {
+                const response = await fetch('/summarize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        url: urlInput,
+                        length: summaryLength,
+                        format: summaryFormat
+                    })
+                });
+
+                const result = await response.json();
+                loadingSpinner.style.display = 'none';
+
+                if (response.ok) {
+                    summaryText.innerHTML = result.summary;
+                    summaryResult.style.display = 'block';
+                } else {
+                    errorMessage.textContent = result.error || "Failed to generate summary.";
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                loadingSpinner.style.display = 'none';
+                errorMessage.textContent = "An error occurred while generating the summary.";
+                errorMessage.style.display = 'block';
+            }
+        }
+    </script>
+
+</body>
+</html>
